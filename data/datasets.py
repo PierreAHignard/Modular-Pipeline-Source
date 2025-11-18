@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Callable, Any, Tuple, List, Union
+from typing import Set, Optional, Callable, Any, Tuple, List, Union
 from pathlib import Path
 from torch.utils.data import Dataset
 from PIL import Image
@@ -79,6 +79,10 @@ class LocalImageDataset(Dataset):
 
         return image, label
 
+    def get_labels(self) -> Set[str]:
+        """Donne le Set des labels uniques présents dans le dataset"""
+        return set(self.class_to_idx.keys())
+
 class HuggingFaceImageDataset(Dataset):
     """Wrapper pour dataset HuggingFace avec colonnes 'image' et 'label'"""
 
@@ -111,3 +115,7 @@ class HuggingFaceImageDataset(Dataset):
             image, label = self.transforms(image, label)
 
         return image, label
+
+    def get_labels(self) -> Set[str]:
+        """Donne le Set des labels uniques présents dans le dataset"""
+        return set(item[self.label_column] for item in self.dataset)
