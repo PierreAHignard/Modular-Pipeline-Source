@@ -11,7 +11,7 @@ class PreProcessConfig:
 
     def __init__(
         self,
-        CONFIG_DICT,
+        config_dict,
         image_size: tuple[int, int] = (224, 224),
         normalize_mean: tuple = (0.485, 0.456, 0.406),
         normalize_std: tuple = (0.229, 0.224, 0.225),
@@ -23,8 +23,17 @@ class PreProcessConfig:
         self.normalize_std = normalize_std
         self.num_classes = num_classes
 
-        self.working_directory = CONFIG_DICT["output_dir"]
+        for key, value in config_dict.items():
+            self._set_nested_attr(key, value)
 
         self.logger = logging.getLoggerClass()
 
         self.class_mapping = ClassMapping(class_mapping or {}, self.logger) # The 'or' means if equal to None then {}
+
+    def _set_nested_attr(self, key, value):
+        keys = key.split('.')
+        for k in keys[:-1]:
+            if not hasattr(self, k):
+                setattr(self, k, PreProcessConfig({}))
+            current = getattr(self, k)
+        setattr(self, keys[-1], value)

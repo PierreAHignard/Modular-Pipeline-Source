@@ -22,16 +22,16 @@ class Trainer:
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.Adam(
             model.parameters(),
-            lr=config["fit.learning_rate"],
-            weight_decay=config["fit.weight_decay"]
+            lr=config.fit.learning_rate,
+            weight_decay=config.fit.weight_decay
         )
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
             self.optimizer,
-            T_max=config["fit.epochs"]
+            T_max=config.fit.epochs
         )
         self.early_stopping = EarlyStopping(
-            patience=config.get("patience", 5),
-            delta=config.get("delta", 0.0001),
+            patience=config.optimizer.patience,
+            delta=config.optimizer.delta,
             verbose=True
         )
 
@@ -92,14 +92,14 @@ class Trainer:
 
     def fit(self):
         """Boucle d'entraînement complète"""
-        for epoch in range(self.config["fit.epochs"]):
+        for epoch in range(self.config.fit.epochs):
             train_loss = self.train_epoch()
             val_loss, val_acc = self.validate()
 
             # Mise à jour du learning rate
             self.scheduler.step()
 
-            print(f"Epoch {epoch+1}/{self.config['fit.epochs']}")
+            print(f"Epoch {epoch+1}/{self.config.fit.epochs}")
             print(f"  Train Loss: {train_loss:.4f}")
             print(f"  Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%")
 
