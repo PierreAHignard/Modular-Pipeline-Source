@@ -157,13 +157,13 @@ class LocalImageDatasetLoader(BaseImageDatasetLoader):
 
     def load_data(self) -> LocalImageDataset:
         """Charge le dataset local"""
-        if super()._dataset is None:
-            super()._dataset = LocalImageDataset(
+        if self._dataset is None:
+            self._dataset = LocalImageDataset(
                 data_dir=self.data_dir,
                 transforms=self.transforms,
                 extensions=self.extensions
             )
-        return super()._dataset
+        return self._dataset
 
 
 class HuggingFaceImageDatasetLoader(BaseImageDatasetLoader):
@@ -187,17 +187,17 @@ class HuggingFaceImageDatasetLoader(BaseImageDatasetLoader):
 
     def load_data(self) -> Dataset:
         """Charge le dataset Hugging Face"""
-        if super()._dataset is None:
+        if self._dataset is None:
             hf_dataset = load_dataset(
                 self.dataset_name,
                 split=self.split,
                 cache_dir=str(self.cache_dir) if self.cache_dir else None
             )
 
-            super()._dataset = HuggingFaceImageDataset(
+            self._dataset = HuggingFaceImageDataset(
                 hf_dataset=hf_dataset,
                 transforms=self.transforms,
                 image_column=self.image_column,
                 label_column=self.label_column
             )
-        return super()._dataset
+        return self._dataset
