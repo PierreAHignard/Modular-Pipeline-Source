@@ -20,6 +20,7 @@ class ClassMapping:
         # Déterminer le prochain ID à partir du max existant
         start = max(self.mapping.values(), default=-1) + 1
         self._counter = count(start)
+        self.size = start
 
     def __getitem__(self, keys: str | pd.Series):
         if isinstance(keys, pd.Series):
@@ -32,6 +33,7 @@ class ClassMapping:
             return self.mapping[key]
         else:
             self.mapping[key] = next(self._counter)
+            self.size += 1
 
             # TODO logging
             # if self.logger:
