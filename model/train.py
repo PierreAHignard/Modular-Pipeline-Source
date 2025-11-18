@@ -105,7 +105,7 @@ class Trainer:
             # Sauvegarde du meilleur modèle
             if val_loss < self.best_val_loss:
                 self.best_val_loss = val_loss
-                torch.save(self.model.state_dict(), self.config["output_dir"] / "model" / "")
+                torch.save(self.model.state_dict(), self.config["output_dir"] / "model" / "model.")
                 print("  ✓ Modèle sauvegardé")
 
             # Early stopping

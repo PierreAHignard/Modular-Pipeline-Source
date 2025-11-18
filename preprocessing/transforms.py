@@ -1,7 +1,7 @@
 import torch
 import torchvision.transforms as T
 from typing import Dict, Any, Tuple
-from data.config import PreProcessConfig
+from utils.config import PreProcessConfig
 
 
 
@@ -34,10 +34,8 @@ class PreProcessor:
         # Convertir en tensor float32
         image = T.ToTensor()(image)
 
-        # Traiter les labels : str -> idx
-        if isinstance(label, str):
-            # Supposant une liste de classes en dehors
-            label = self._label_to_idx(label)
+        # Convert labels using the mapping
+        label = self.config.class_mapping[label]
 
         return image, label
 
