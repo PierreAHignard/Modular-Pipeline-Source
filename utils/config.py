@@ -24,4 +24,4 @@ class PreProcessConfig:
 
         self.logger = logging.getLoggerClass()
 
-        self.class_mapping = ClassMapping(self, class_mapping or {}) # The 'or' means if equal to None then {}
+        self.class_mapping = ClassMapping(class_mapping or {}, self.logger) # The 'or' means if equal to None then {}

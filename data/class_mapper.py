@@ -1,7 +1,7 @@
 from typing import Dict, List
 from itertools import count
 import pandas as pd
-from utils.config import PreProcessConfig
+from logging import Logger
 
 
 class ClassMapping:
@@ -11,11 +11,11 @@ class ClassMapping:
 
     def __init__(
             self,
-            config: PreProcessConfig,
-            mapping: Dict[str, int] = None
+            mapping: Dict[str, int] = None,
+            logger: Logger = None
     ):
         self.mapping = mapping or {}
-        self.config = config
+        self.logger = logger
 
         # Déterminer le prochain ID à partir du max existant
         start = max(self.mapping.values(), default=-1) + 1
@@ -34,6 +34,7 @@ class ClassMapping:
             self.mapping[key] = next(self._counter)
 
             # TODO logging
-            # self.config.logger.info(f"Created class mapping '{key}' -> '{self.mapping[key]}' ")
+            # if self.logger:
+            # self.logger.info(f"Created class mapping '{key}' -> '{self.mapping[key]}' ")
 
             return self.mapping[key]
