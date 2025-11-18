@@ -41,10 +41,6 @@ class PreProcessor:
 
         return image, label
 
-    def _label_to_idx(self, label_str: str) -> int:
-        """À customiser selon votre liste de classes"""
-        raise NotImplementedError("Implémenter le mapping label_str -> idx")
-
 
 # ============ ÉTAPE 2: DATA AUGMENTATION ============
 

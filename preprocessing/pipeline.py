@@ -1,11 +1,13 @@
 from typing import Dict, Any, Tuple
 from preprocessing.transforms import PreProcessor, DataAugmentation, ModelSpecificPreprocessor
 from data.config import PreProcessConfig
+from data.class_mapper import ClassMapping
 
 # ============ COMPOSITION DES TRANSFORMATIONS ============
 
 class TransformPipeline:
-    """Pipeline complète : combine les 3 étapes dans le bon ordre"""
+    """Pipeline complète : combine les 3 étapes dans le bon ordre
+    Set class_mapping to None for automatic mapping"""
 
     def __init__(
         self,
@@ -16,16 +18,12 @@ class TransformPipeline:
     ):
         self.config = config
         self.is_train = is_train
-        self.class_mapping = class_mapping or {}
+        self.class_mapping = ClassMapping(class_mapping)
 
         # Instancier dans l'ordre
         self.pre_processor = PreProcessor(config)
         self.augmentor = DataAugmentation(config, is_train=is_train)
         self.model_processor = ModelSpecificPreprocessor(config, model_name)
-
-    def set_class_mapping(self, mapping: Dict[str, int]):
-        """Définir le mapping str -> int pour les labels"""
-        self.pre_processor._label_to_idx = lambda label: mapping.get(label, 0)
 
     def __call__(self, image: Any, label: str) -> Tuple[str, Any]:
         # Étape 1
