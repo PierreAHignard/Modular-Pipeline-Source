@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List
 from itertools import count
 import pandas as pd
 from logging import Logger
@@ -30,19 +30,13 @@ class ClassMapping:
         else:
             return self._get_one_item(keys)
 
-    def _get_one_item(self,
-            key: str,
-            _is_preload: bool =False
-        ):
-
+    def _get_one_item(self, key: str):
         if not isinstance(key, (str, int)):
             raise ValueError(f"Value '{key}' is not included in (str, int)")
 
         if key not in self.mapping:
             self.mapping[key] = next(self._counter)
             self.size += 1
-
-            print(f"Created class mapping '{key}' -> '{self.mapping[key]}' ")
 
             # TODO logging
             # if self.logger:
@@ -64,7 +58,7 @@ class ClassMapping:
         problematic_keys = []
         for key in classes:
             try:
-                _ = self._get_one_item(key, _is_preload=True)
+                _ = self._get_one_item(key)
             except ValueError:
                 problematic_keys.append(key)
 
