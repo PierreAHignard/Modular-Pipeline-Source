@@ -230,9 +230,9 @@ class DatasetAnalyzer:
 
     def check_image_values(self) -> Dict:
         """Vérifie si les valeurs des images sont correctes"""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("🔍 VÉRIFICATION DES VALEURS D'IMAGES")
-        print("="*60)
+        print("=" * 60)
 
         issues = {
             "all_zeros": 0,
@@ -240,14 +240,20 @@ class DatasetAnalyzer:
             "all_same_value": 0,
             "nan_values": 0,
             "inf_values": 0,
-            "out_of_range": 0,
         }
+
+        # Détecter la plage normale des images
+        all_min = float('inf')
+        all_max = float('-inf')
 
         for batch in tqdm(self.dataloader, desc="Vérification valeurs"):
             images, _ = batch
 
             for img in images:
                 img_float = img.float() if img.dtype != torch.float32 else img
+
+                all_min = min(all_min, img_float.min().item())
+                all_max = max(all_max, img_float.max().item())
 
                 if torch.all(img_float == 0):
                     issues["all_zeros"] += 1
@@ -262,9 +268,22 @@ class DatasetAnalyzer:
                 if torch.isinf(img_float).any():
                     issues["inf_values"] += 1
 
-                if (img_float < 0).any() or (img_float > 1).any():
-                    if torch.max(img_float) > 255 or torch.min(img_float) < 0:
-                        issues["out_of_range"] += 1
+        # Détecter le format
+        if all_min >= 0 and all_max <= 1:
+            format_type = "Normalisé [0, 1]"
+            is_normalized = True
+        elif all_min >= 0 and all_max <= 255:
+            format_type = "Valeurs brutes [0, 255]"
+            is_normalized = False
+        elif all_min < 0 and all_max < 5:
+            format_type = "Normalisé (ImageNet) [-σ, +σ]"
+            is_normalized = True
+        else:
+            format_type = "Format inconnu ⚠️"
+            is_normalized = True
+
+        print(f"\n✓ Format détecté: {format_type}")
+        print(f"✓ Plage détectée: [{all_min:.3f}, {all_max:.3f}]")
 
         print("\n⚠️  Problèmes détectés:")
         for issue, count in issues.items():
@@ -273,8 +292,16 @@ class DatasetAnalyzer:
             else:
                 print(f"  ✓ {issue}: 0")
 
-        self.results["value_issues"] = issues
-        return issues
+        results = {
+            "format_type": format_type,
+            "is_normalized": is_normalized,
+            "min_value": all_min,
+            "max_value": all_max,
+            "issues": issues,
+        }
+
+        self.results["value_issues"] = results
+        return results
 
     def visualize_sample_batch(self, num_samples: int = 16, save_path: Optional[Path] = None):
         """Visualise un batch d'échantillons"""

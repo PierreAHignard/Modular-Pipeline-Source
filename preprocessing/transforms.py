@@ -32,8 +32,9 @@ class PreProcessor:
         # Convertir en tensor float32
         image = T.ToTensor()(image)
 
-        ## AVANT le mapping
+        # AVANT le mapping
         #print("------------Testing for issues with mapping-----------")
+        #print(self.config.class_mapping)
         #print(f"Wants to map label : '{label}'")
         #print("Class mapping before:", self.config.class_mapping.mapping)
         #print("Class size before:", self.config.class_mapping.size)
@@ -41,7 +42,7 @@ class PreProcessor:
         # Le mapping se crée ici automatiquement
         label = self.config.class_mapping[label]
 
-        ## APRÈS le mapping
+        # APRÈS le mapping
         #print("Class mapping after:", self.config.class_mapping.mapping)
         #print("Class size after:", self.config.class_mapping.size)
         #print(f"Label '{label}' mapped to ID: {label}")

@@ -40,3 +40,6 @@ class ClassMapping:
             # self.logger.info(f"Created class mapping '{key}' -> '{self.mapping[key]}' ")
 
             return self.mapping[key]
+
+    def __str__(self):
+        return self.mapping
