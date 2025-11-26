@@ -12,7 +12,7 @@ class PreProcessor:
     def __init__(self, config: Config):
         self.config = config
 
-    def __call__(self, image: Any, label: str) -> Any:
+    def __call__(self, image: Any) -> Any:
         # Traiter l'image
         # Convertir en PIL si nécessaire
         if isinstance(image, str):
@@ -32,22 +32,7 @@ class PreProcessor:
         # Convertir en tensor float32
         image = T.ToTensor()(image)
 
-        # AVANT le mapping
-        #print("------------Testing for issues with mapping-----------")
-        #print(self.config.class_mapping)
-        #print(f"Wants to map label : '{label}'")
-        #print("Class mapping before:", self.config.class_mapping.mapping)
-        #print("Class size before:", self.config.class_mapping.size)
-
-        # Le mapping se crée ici automatiquement
-        label = self.config.class_mapping[label]
-
-        # APRÈS le mapping
-        #print("Class mapping after:", self.config.class_mapping.mapping)
-        #print("Class size after:", self.config.class_mapping.size)
-        #print(f"Label '{label}' mapped to ID: {label}")
-
-        return image, label
+        return image
 
 
 # ============ ÉTAPE 2: DATA AUGMENTATION ============
@@ -71,7 +56,7 @@ class DataAugmentation:
         else:
             self.transforms = T.Compose([])  # Pas d'augmentation en eval
 
-    def __call__(self, image: Any, label: str) -> Tuple[str, Any]:
+    def __call__(self, image: Any) -> Tuple[str, Any]:
         if self.is_train:
             # Convertir tensor -> PIL pour torchvision.transforms
             if isinstance(image, torch.Tensor):
@@ -83,7 +68,7 @@ class DataAugmentation:
             # Reconvertir en tensor
             image = T.ToTensor()(image)
 
-        return image, label
+        return image
 
 
 # ============ ÉTAPE 3: MODEL-SPECIFIC PREPROCESS ============
@@ -101,7 +86,7 @@ class ModelSpecificPreprocessor:
             std=config.normalize_std
         )
 
-    def __call__(self, image: Any, label: str) -> Tuple[str, Any]:
+    def __call__(self, image: Any) -> Tuple[str, Any]:
         # S'assurer que c'est un tensor
         if not isinstance(image, torch.Tensor):
             image = T.ToTensor()(image)
@@ -113,4 +98,4 @@ class ModelSpecificPreprocessor:
         # Normaliser
         image = self.normalize(image)
 
-        return image, label
+        return image

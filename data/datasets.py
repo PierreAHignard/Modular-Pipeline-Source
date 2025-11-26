@@ -84,7 +84,7 @@ class LocalImageDataset(CustomDataset):
         image = Image.open(img_path).convert('RGB')
 
         if self.transforms:
-            image, label = self.transforms(image, label)
+            image = self.transforms(image)
 
         label = self.config.class_mapping[label]
 
@@ -128,7 +128,7 @@ class HuggingFaceImageDataset(CustomDataset):
             image = Image.fromarray(np.array(image)).convert('RGB')
 
         if self.transforms:
-            image, label = self.transforms(image, label)
+            image = self.transforms(image)
 
         label = self.config.class_mapping[label]
 
