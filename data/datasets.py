@@ -16,8 +16,8 @@ class CustomDataset(Dataset):
     def __init__(self):
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def labels(self):
         pass
 
