@@ -12,17 +12,22 @@ class ClassMapping:
     def __init__(
             self,
             mapping: Dict[str, int] = None,
-            logger: Logger = None
+            logger: Logger = None,
+            allow_new_class_outside_preload: bool = False
     ):
-        self.mapping = mapping or {}
-        self.logger = logger
+        self._mapping = mapping or {}
+        self._logger = logger
+        self._allow_new_class_outside_preload = allow_new_class_outside_preload
 
         # Déterminer le prochain ID à partir du max existant
-        start = max(self.mapping.values(), default=-1) + 1
+        start = max(self._mapping.values(), default=-1) + 1
         self._counter = count(start)
+
         self.size = start
 
-    def __getitem__(self, keys: str | pd.Series):
+    def __getitem__(self,
+            keys: str | pd.Series
+        ):
         if isinstance(keys, pd.Series):
             return keys.map(self._get_one_item)
         elif isinstance(keys, list):
@@ -30,19 +35,25 @@ class ClassMapping:
         else:
             return self._get_one_item(keys)
 
-    def _get_one_item(self, key: str):
+    def _get_one_item(self,
+            key: str,
+            _allow_new: bool = False
+        ):
         if not isinstance(key, (str, int)):
             raise ValueError(f"Value '{key}' is not included in (str, int)")
 
-        if key not in self.mapping:
-            self.mapping[key] = next(self._counter)
+        if key not in self._mapping:
+            self._mapping[key] = next(self._counter)
             self.size += 1
+
+            if not _allow_new:
+                raise Exception("Class setting outside of preload")
 
             # TODO logging
             # if self.logger:
-            # self.logger.info(f"Created class mapping '{key}' -> '{self.mapping[key]}' ")
+            # self._logger.info(f"Created class mapping '{key}' -> '{self.mapping[key]}' ")
 
-        return self.mapping[key]
+        return self._mapping[key]
 
     def preload_classes(self, classes: Union[list[str], list[int]]):
         """
@@ -58,7 +69,7 @@ class ClassMapping:
         problematic_keys = []
         for key in classes:
             try:
-                _ = self._get_one_item(key)
+                _ = self._get_one_item(key, True)
             except ValueError:
                 problematic_keys.append(key)
 
@@ -66,4 +77,4 @@ class ClassMapping:
             raise ValueError(f"Issue with classes {problematic_keys}")
 
     def __str__(self):
-        return self.mapping
+        return str(self._mapping)

@@ -16,7 +16,8 @@ class Config:
         image_size: tuple[int, int] = (224, 224),
         normalize_mean: tuple = (0.485, 0.456, 0.406),
         normalize_std: tuple = (0.229, 0.224, 0.225),
-        class_mapping: Dict[str, int] = None
+        class_mapping: Dict[str, int] = None,
+        allow_new_class_outside_preload: bool = True
     ):
         self.image_size = image_size
         self.normalize_mean = normalize_mean
@@ -27,7 +28,7 @@ class Config:
 
         self.logger = logger or logging.getLogger(__name__)
 
-        self.class_mapping = ClassMapping(class_mapping, self.logger)
+        self.class_mapping = ClassMapping(class_mapping, self.logger, allow_new_class_outside_preload)
 
     def _set_nested_attr(self, key, value):
         keys = key.split('.')
