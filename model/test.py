@@ -97,11 +97,7 @@ class Tester:
         self.all_probabilities = np.array(self.all_probabilities)
 
         # Get class names
-        num_classes = self.all_probabilities.shape[1]
-        self.class_names = [
-            self.config.class_mapper.name[idx]
-            for idx in range(num_classes)
-        ]
+        self.class_names = self.config.class_mapping.idx_to_name
 
         # Calculate all metrics
         metrics = self._calculate_metrics()

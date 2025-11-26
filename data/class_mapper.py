@@ -25,6 +25,9 @@ class ClassMapping:
 
         self.size = start
 
+    def __str__(self):
+        return str(self._mapping)
+
     def __getitem__(self,
             keys: str | pd.Series
         ):
@@ -76,5 +79,12 @@ class ClassMapping:
         if len(problematic_keys) > 0:
             raise ValueError(f"Issue with classes {problematic_keys}")
 
-    def __str__(self):
-        return str(self._mapping)
+    @property
+    def name_to_idx(self):
+        return self._mapping
+
+    @property
+    def idx_to_name(self):
+        temp = {value: key for key, value in self._mapping.items()}
+
+        return [temp[i] for i in range(self.size)]
