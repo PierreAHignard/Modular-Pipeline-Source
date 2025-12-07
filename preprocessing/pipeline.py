@@ -11,13 +11,14 @@ class TransformPipeline:
         self,
         config: Config,
         model_name: str = 'resnet50',
-        is_train: bool = True
+        is_train: bool = True,
+        bbox_padding: float = 0.1
     ):
         self.config = config
         self.is_train = is_train
 
         # Instancier dans l'ordre
-        self.pre_processor = PreProcessor(config)
+        self.pre_processor = PreProcessor(config, bbox_padding=bbox_padding)
         self.augmentor = DataAugmentation(config, is_train=is_train)
         self.model_processor = ModelSpecificPreprocessor(config, model_name)
 
