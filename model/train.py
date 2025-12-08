@@ -21,10 +21,10 @@ class Trainer:
         self.criterion = nn.CrossEntropyLoss()
 
         # Configuration du fine-tuning progressif
-        self.progressive_unfreeze = config.fit.get('progressive_unfreeze', False)
-        self.unfreeze_schedule = config.fit.get('unfreeze_schedule', [10, 20, 30])
+        self.progressive_unfreeze = config.fit.progressive_unfreeze
+        self.unfreeze_schedule = config.fit.unfreeze_schedule
         self.base_lr = config.fit.learning_rate
-        self.classifier_lr_multiplier = config.fit.get('classifier_lr_multiplier', 10)
+        self.classifier_lr_multiplier = config.fit.classifier_lr_multiplier
 
         # Initialisation : geler le backbone, garder le classificateur entraînable
         if self.progressive_unfreeze:
