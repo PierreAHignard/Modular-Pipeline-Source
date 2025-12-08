@@ -122,6 +122,10 @@ class HuggingFaceImageDataset(CustomDataset):
         # Charge UNIQUEMENT la colonne des labels, pas les images
         label_data = self.dataset[self.label_column]
 
+        # Convertir en liste si c'est un IterableColumn
+        if hasattr(label_data, '__iter__') and not isinstance(label_data, (list, str)):
+            label_data = list(label_data)
+
         # Détection auto du mode multi-label
         if not self.multi_label and len(label_data) > 0:
             first_labels = label_data[0]
