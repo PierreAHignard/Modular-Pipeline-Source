@@ -33,7 +33,7 @@ class Config:
 
         self.logger = logger or logging.getLogger(__name__)
 
-        self.class_mapping = ClassMapping(class_mapping, self.logger, allow_new_class_outside_preload)
+        self.class_mapping = ClassMapping(self, class_mapping, allow_new_class_outside_preload)
 
     def _set_nested_attr(self, key, value):
         keys = key.split('.')

@@ -20,7 +20,6 @@ class ClassMapping:
     ):
         self.config = config
         self._mapping = mapping or {}
-        self._logger = logger
         self._allow_new_class_outside_preload = allow_new_class_outside_preload
 
         # Déterminer le prochain ID à partir du max existant
@@ -55,10 +54,6 @@ class ClassMapping:
                 self.size += 1
             else:
                 raise Exception(f"Class {key} setting outside of preload")
-
-            # TODO logging
-            # if self.logger:
-            # self._logger.info(f"Created class mapping '{key}' -> '{self.mapping[key]}' ")
 
         return self._mapping[key]
 
@@ -108,17 +103,13 @@ class ClassMapping:
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
-        if self._logger:
-            self._logger.info(f"Class mapping saved to {path}")
-
     @classmethod
-    def load(cls, config: Any, path: str = None, logger: Logger = None):
+    def load(cls, config: Any, path: str = None):
         """
         Loads a class mapping from a JSON file.
 
         :param config: Configuration object
         :param path: Optional path to load the mapping from. If not set, uses config.working_directory
-        :param logger: Optional logger
         :return: ClassMapping instance with loaded data
         """
         if path is None:
@@ -137,12 +128,8 @@ class ClassMapping:
         instance = cls(
             config=config,
             mapping=data["mapping"],
-            logger=logger,
             allow_new_class_outside_preload=data.get("allow_new_class_outside_preload", False)
         )
-
-        if logger:
-            logger.info(f"Class mapping loaded from {path} with {instance.size} classes")
 
         return instance
 
