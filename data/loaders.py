@@ -189,6 +189,7 @@ class HuggingFaceImageDatasetLoader(BaseImageDatasetLoader):
         cache_dir: Optional[Path] = None,
         image_column: str = 'image',
         label_column: str = 'label',
+        bbox_column: str = 'boxes',
         streaming: bool = False,
         **kwargs
     ):
@@ -198,6 +199,7 @@ class HuggingFaceImageDatasetLoader(BaseImageDatasetLoader):
         self.cache_dir = cache_dir
         self.image_column = image_column
         self.label_column = label_column
+        self.bbox_column = bbox_column
         self.config = config
         self.streaming = streaming
 
@@ -217,6 +219,7 @@ class HuggingFaceImageDatasetLoader(BaseImageDatasetLoader):
                 config=self.config,
                 transforms=self.transforms,
                 image_column=self.image_column,
-                label_column=self.label_column
+                label_column=self.label_column,
+                bbox_column=self.bbox_column
             )
         return self._dataset

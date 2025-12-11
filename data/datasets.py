@@ -123,7 +123,7 @@ class HuggingFaceImageDataset(CustomDataset):
         transforms: Optional[Callable] = None,
         image_column: str = 'image',
         label_column: str = 'label',
-        bbox_column: Optional[str] = None,
+        bbox_column: str = 'boxes',
         multi_label: bool = False,
         bbox_padding: float = 0.1
     ):
