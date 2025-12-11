@@ -137,16 +137,11 @@ class HuggingFaceImageDataset(CustomDataset):
         self.bbox_column = bbox_column
         self.multi_label = multi_label
 
-        # Use the preprocessor BEFORE saving to RAM (lighter and faster as it is the same for all calls of the image)
         self.pre_processor = PreProcessor(config, bbox_padding=bbox_padding)
 
         # Pré-chargement complet en mémoire
         print(f"🔄 Chargement du dataset en mémoire...")
         self._preload_dataset(hf_dataset)
-
-        # Construction de l'index multi-label
-        self._build_index()
-
         print(f"✅ Dataset prêt: {len(self.images_tensor)} images → {len(self)} échantillons")
 
     def _preload_dataset(self, hf_dataset):
@@ -155,8 +150,8 @@ class HuggingFaceImageDataset(CustomDataset):
 
         # Pré-allocation des listes pour performance
         self.images_tensor: List[Tensor] = []
-        self.labels_list: List[Any] = []
-        self.bboxes_list: Optional[List[Any]] = [] if self.bbox_column else None
+        self.label_list: List[Any] = []
+        self.bbox_list: List[Any] = []
 
         # Détection du mode multi-label sur le premier échantillon
         if dataset_size > 0:
@@ -166,66 +161,47 @@ class HuggingFaceImageDataset(CustomDataset):
 
         # Chargement avec barre de progression
         for item in tqdm(hf_dataset, desc="Chargement", total=dataset_size, unit="img"):
-            # Image
-            image = item[self.image_column]
-            image = self.pre_processor(image)
-            self.images_tensor.append(image)
-
             # Labels
             labels = item[self.label_column]
             # Normaliser en liste pour traitement uniforme
             if not isinstance(labels, (list, tuple)):
                 labels = [labels]
-            self.labels_list.append(labels)
 
             # Bounding boxes (optionnel)
             if self.bbox_column and self.bbox_column in item:
-                self.bboxes_list.append(item[self.bbox_column])
-            elif self.bboxes_list is not None:
-                self.bboxes_list.append(None)
+                bboxes = item[self.bbox_column]
+            else:
+                bboxes = [None] * len(labels)
 
-    def _build_index(self):
-        """
-        Construit l'index de mapping (idx → (img_idx, label_idx))
-        En multi-label: chaque couple (image, label) devient un échantillon
-        """
-        self.index_mapping: List[Tuple[int, int]] = []
+            if len(labels) != len(bboxes):
+                raise Exception(f"Number of labels ({len(labels)}) not equal to number of bboxes ({len(bboxes)}).")
 
-        if self.multi_label:
-            for img_idx, labels in enumerate(self.labels_list):
-                for label_idx in range(len(labels)):
-                    self.index_mapping.append((img_idx, label_idx))
+            image = item[self.image_column]
 
-            print(f"  → Mode multi-label détecté")
-        else:
-            # Mode single-label: mapping direct
-            self.index_mapping = [(i, 0) for i in range(len(self.images_tensor))]
+            for i in range(len(labels)):
+                # Image
+                cropped_image = self.pre_processor(image, bbox=bboxes[i])
+                self.images_tensor.append(cropped_image)
+
+                # Label
+                self.label_list.append(labels[i])
+
+                # BBox
+                self.bbox_list.append(bboxes[i])
 
     def __len__(self) -> int:
-        return len(self.index_mapping)
+        return len(self.label_list)
 
     def __getitem__(self, idx: int) -> Tuple[Any, int]:
         """Accès ultra-rapide depuis la mémoire"""
-        img_idx, label_idx = self.index_mapping[idx]
 
-        # Récupération directe depuis les listes pré-chargées
-        image = self.images_tensor[img_idx]
-        labels = self.labels_list[img_idx]
-        label = labels[label_idx]
-
-        # Récupération de la bbox si disponible
-        bbox = None
-        if self.bboxes_list is not None and self.bboxes_list[img_idx] is not None:
-            bboxes = self.bboxes_list[img_idx]
-            if isinstance(bboxes, (list, tuple)) and len(bboxes) > label_idx:
-                bbox = bboxes[label_idx]
+        # Récupération directe depuis les listes
+        image = self.images_tensor[idx]
+        label = self.label_list[idx]
 
         # Application des transformations
         if self.transforms:
-            if bbox is not None:
-                image = self.transforms(image, bbox=bbox)
-            else:
-                image = self.transforms(image)
+            image = self.transforms(image)
 
         # Mapping du label vers l'index de classe
         label_idx_mapped = self.config.class_mapping[label]
@@ -237,7 +213,7 @@ class HuggingFaceImageDataset(CustomDataset):
         """Retourne l'ensemble unique de tous les labels"""
         if self._cached_labels is None:
             all_labels = set()
-            for labels in self.labels_list:
+            for labels in self.label_list:
                 all_labels.update(labels)
             self._cached_labels = all_labels
         return self._cached_labels
@@ -246,13 +222,7 @@ class HuggingFaceImageDataset(CustomDataset):
         """Retourne la distribution des labels (utile pour debug)"""
         from collections import Counter
         all_labels = []
-        for labels in self.labels_list:
+        for labels in self.label_list:
             all_labels.extend(labels)
         return dict(Counter(all_labels))
-
-    def __repr__(self) -> str:
-        return (f"HuggingFaceImageDataset("
-                f"images={len(self.images)}, "
-                f"samples={len(self)}, "
-                f"multi_label={self.multi_label})")
 
