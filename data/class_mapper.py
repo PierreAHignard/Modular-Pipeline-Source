@@ -15,7 +15,6 @@ class ClassMapping:
             self,
             config: Any,
             mapping: Dict[str, int] = None,
-            logger: Logger = None,
             allow_new_class_outside_preload: bool = False
     ):
         self.config = config
@@ -26,10 +25,13 @@ class ClassMapping:
         start = max(self._mapping.values(), default=-1) + 1
         self._counter = count(start)
 
-        self.size = start
+        self._size = start
 
     def __str__(self):
         return str(self._mapping)
+
+    def __len__(self):
+        return self._size
 
     def __getitem__(self,
             keys: str | pd.Series
@@ -54,7 +56,7 @@ class ClassMapping:
         if key not in self._mapping:
             if _allow_new or self._allow_new_class_outside_preload:
                 self._mapping[key] = next(self._counter)
-                self.size += 1
+                self._size += 1
             else:
                 raise Exception(f"Class {key} setting outside of preload")
 
@@ -99,7 +101,7 @@ class ClassMapping:
         data = {
             "mapping": self._mapping,
             "allow_new_class_outside_preload": self._allow_new_class_outside_preload,
-            "size": self.size
+            "size": self._size
         }
 
         # Sauvegarder en JSON
@@ -148,4 +150,8 @@ class ClassMapping:
 
     @property
     def labels(self):
-        return self._mapping.keys()
+        return list(self._mapping.keys())
+
+    @property
+    def mapped_labels(self):
+        return list(range(0, len(self)))
