@@ -199,7 +199,7 @@ class HuggingFaceImageDataset(CustomDataset):
             print(f"  → Mode multi-label détecté")
         else:
             # Mode single-label: mapping direct
-            self.index_mapping = [(i, 0) for i in range(len(self.images))]
+            self.index_mapping = [(i, 0) for i in range(len(self.images_tensor))]
 
     def __len__(self) -> int:
         return len(self.index_mapping)
