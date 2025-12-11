@@ -437,7 +437,8 @@ class Tester:
                 metrics['top_3_accuracy'] = top_k_accuracy_score(
                     confident_labels,
                     self.all_probabilities[confident_mask],
-                    k=min(3, n_classes)
+                    k=min(3, n_classes),
+                    labels=self.config.class_mapping.mapped_labels
                 )
             except Exception as e:
                 print(f"⚠️ Could not calculate top-3 accuracy: {e}")
@@ -448,7 +449,8 @@ class Tester:
                 metrics['top_5_accuracy'] = top_k_accuracy_score(
                     confident_labels,
                     self.all_probabilities[confident_mask],
-                    k=min(5, n_classes)
+                    k=min(5, n_classes),
+                    labels=self.config.class_mapping.mapped_labels
                 )
             except Exception as e:
                 print(f"⚠️ Could not calculate top-5 accuracy: {e}")
@@ -740,7 +742,8 @@ class Tester:
             self.all_predictions,
             target_names=self.class_names,
             digits=3,
-            zero_division=0
+            zero_division=0,
+            labels=self.config.class_mapping.mapped_labels
         )
 
         # Save text report
