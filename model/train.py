@@ -11,7 +11,15 @@ __all__ = [
 ]
 
 class Trainer:
-    def __init__(self, model, train_loader, val_loader, config, device):
+    def __init__(
+            self,
+            model,
+            train_loader,
+            val_loader,
+            config,
+            device,
+            criterion = nn.CrossEntropyLoss()
+    ):
         self.model = model
         self.train_loader = train_loader
         self.val_loader = val_loader

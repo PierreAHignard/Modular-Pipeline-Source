@@ -1,6 +1,12 @@
 __all__= [
-    "unfreeze_last_layers"
+    "unfreeze_last_layers",
+    "FocalLoss"
 ]
+
+import torch
+from torch import nn
+import torch.nn.functional as F
+
 
 def unfreeze_last_layers(model, num_layers_to_unfreeze=5):
     """
@@ -28,3 +34,15 @@ def unfreeze_last_layers(model, num_layers_to_unfreeze=5):
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total = sum(p.numel() for p in model.parameters())
     print(f"✓ Trainable params: {trainable:,} / {total:,} ({100*trainable/total:.1f}%)")
+
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=1, gamma=2):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+
+    def forward(self, inputs, targets):
+        ce_loss = F.cross_entropy(inputs, targets, reduction='none')
+        pt = torch.exp(-ce_loss)
+        focal_loss = self.alpha * (1-pt)**self.gamma * ce_loss
+        return focal_loss.mean()
