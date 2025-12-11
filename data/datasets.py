@@ -5,7 +5,6 @@ from pathlib import Path
 from torch import Tensor
 from torch.utils.data import Dataset
 from PIL import Image
-import numpy as np
 from tqdm import tqdm
 
 from preprocessing.transforms import PreProcessor
@@ -24,6 +23,10 @@ class CustomDataset(Dataset):
     @property
     @abstractmethod
     def labels(self):
+        pass
+
+    @abstractmethod
+    def get_label_distribution(self):
         pass
 
 class LocalImageDataset(CustomDataset):
@@ -109,6 +112,9 @@ class LocalImageDataset(CustomDataset):
     def labels(self) -> Set[str]:
         return set(item[1] for item in self.samples)
 
+    def get_label_distribution(self):
+        raise NotImplementedError
+
 
 class HuggingFaceImageDataset(CustomDataset):
     """
@@ -129,7 +135,6 @@ class HuggingFaceImageDataset(CustomDataset):
     ):
         super().__init__()
 
-        self._cached_labels = None
         self.config = config
         self.transforms = transforms
         self.image_column = image_column
@@ -191,9 +196,6 @@ class HuggingFaceImageDataset(CustomDataset):
                 # BBox
                 #self.bbox_list.append(bboxes[i])
 
-    def __len__(self) -> int:
-        return len(self.label_list)
-
     def __getitem__(self, idx: int) -> Tuple[Any, int]:
         """Accès rapide depuis la mémoire"""
 
@@ -207,19 +209,18 @@ class HuggingFaceImageDataset(CustomDataset):
 
         return image, label
 
+    def __len__(self) -> int:
+        return len(self.label_list)
+
     @property
     def labels(self) -> Set[str]:
         """Retourne l'ensemble unique de tous les labels"""
-        if self._cached_labels is None:
-            self._cached_labels = set(self.label_list)
 
-        return self._cached_labels
+        return set(self.label_list)
 
     def get_label_distribution(self) -> Dict[str, int]:
-        """Retourne la distribution des labels (utile pour debug)"""
+        """Retourne la distribution des labels"""
         from collections import Counter
-        all_labels = []
-        for labels in self.label_list:
-            all_labels.extend(labels)
-        return dict(Counter(all_labels))
+
+        return dict(Counter(self.label_list))
 

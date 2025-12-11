@@ -5,7 +5,7 @@ Permet de créer des splits train/val/test
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Callable, Any, Tuple, List, Union
+from typing import Optional, Callable, Tuple, Union
 from pathlib import Path
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -147,6 +147,12 @@ class BaseImageDatasetLoader(ABC):
     def labels(self):
         if self._labels is None:
             self._labels = self.load_data().labels
+
+        return self._labels
+
+    def get_label_distribution(self):
+        if self._labels is None:
+            self._labels = self.load_data().get_label_distribution()
 
         return self._labels
 
