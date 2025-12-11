@@ -142,7 +142,7 @@ class HuggingFaceImageDataset(CustomDataset):
         # Pré-chargement complet en mémoire
         print(f"🔄 Chargement du dataset en mémoire...")
         self._preload_dataset(hf_dataset)
-        print(f"✅ Dataset prêt: {len(self.images_tensor)} images → {len(self)} échantillons")
+        print(f"✅ Dataset prêt: {len(hf_dataset)} images → {len(self)} échantillons")
 
     def _preload_dataset(self, hf_dataset):
         """Charge tout le dataset en mémoire de manière optimisée"""
@@ -178,13 +178,15 @@ class HuggingFaceImageDataset(CustomDataset):
 
             image = item[self.image_column]
 
+            #
             for i in range(len(labels)):
                 # Image
                 cropped_image = self.pre_processor(image, bbox=bboxes[i])
                 self.images_tensor.append(cropped_image)
 
                 # Label
-                self.label_list.append(labels[i])
+                mapped_label = self.config.class_mapping[labels[i]]
+                self.label_list.append(mapped_label)
 
                 # BBox
                 self.bbox_list.append(bboxes[i])
@@ -203,19 +205,14 @@ class HuggingFaceImageDataset(CustomDataset):
         if self.transforms:
             image = self.transforms(image)
 
-        # Mapping du label vers l'index de classe
-        label_idx_mapped = self.config.class_mapping[label]
-
-        return image, label_idx_mapped
+        return image, label
 
     @property
     def labels(self) -> Set[str]:
         """Retourne l'ensemble unique de tous les labels"""
         if self._cached_labels is None:
-            all_labels = set()
-            for labels in self.label_list:
-                all_labels.update(labels)
-            self._cached_labels = all_labels
+            self._cached_labels = set(self.label_list)
+
         return self._cached_labels
 
     def get_label_distribution(self) -> Dict[str, int]:
