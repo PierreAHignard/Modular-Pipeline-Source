@@ -151,7 +151,7 @@ class HuggingFaceImageDataset(CustomDataset):
         # Pré-allocation des listes pour performance
         self.images_tensor: List[Tensor] = []
         self.label_list: List[Any] = []
-        self.bbox_list: List[Any] = []
+        #self.bbox_list: List[Any] = []
 
         # Détection du mode multi-label sur le premier échantillon
         if dataset_size > 0:
@@ -167,7 +167,7 @@ class HuggingFaceImageDataset(CustomDataset):
             if not isinstance(labels, (list, tuple)):
                 labels = [labels]
 
-            # Bounding boxes (optionnel)
+            # Bounding boxes
             if self.bbox_column and self.bbox_column in item:
                 bboxes = item[self.bbox_column]
             else:
@@ -189,13 +189,13 @@ class HuggingFaceImageDataset(CustomDataset):
                 self.label_list.append(mapped_label)
 
                 # BBox
-                self.bbox_list.append(bboxes[i])
+                #self.bbox_list.append(bboxes[i])
 
     def __len__(self) -> int:
         return len(self.label_list)
 
     def __getitem__(self, idx: int) -> Tuple[Any, int]:
-        """Accès ultra-rapide depuis la mémoire"""
+        """Accès rapide depuis la mémoire"""
 
         # Récupération directe depuis les listes
         image = self.images_tensor[idx]
