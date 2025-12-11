@@ -31,7 +31,8 @@ class Tester:
     def __init__(
         self,
         model: nn.Module,
-        config: Config
+        config: Config,
+        confidence_threshold: float = 0.5  # Nouveau paramètre
     ):
         """
         Initialize the tester.
@@ -39,25 +40,29 @@ class Tester:
         Args:
             model: Trained PyTorch model
             config: Configuration object
+            confidence_threshold: Seuil minimum de confiance (0-1)
         """
         self.config = config
         self.model = model.to(self.config.device)
+        self.confidence_threshold = confidence_threshold  # Ajouter ceci
 
-        # Create timestamp for this test run
+        # Reste du code...
         self.timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         self.run_dir = self.config.working_directory / "test" / self.timestamp
         self.run_dir.mkdir(parents=True, exist_ok=True)
 
-        # Storage for predictions and labels
         self.all_predictions = []
         self.all_labels = []
         self.all_probabilities = []
+        self.all_confidences = []  # Nouveau: stocker les confiances
+        self.uncertain_mask = []   # Nouveau: masque pour les prédictions incertaines
         self.class_names = []
 
     def evaluate(
         self,
         test_loader: DataLoader,
-        save_results: bool = True
+        save_results: bool = True,
+        use_confidence_threshold: bool = True  # Nouveau paramètre
     ) -> Dict:
         """
         Run evaluation on test dataset.
@@ -65,16 +70,21 @@ class Tester:
         Args:
             test_loader: DataLoader for test data
             save_results: Whether to save results to disk
+            use_confidence_threshold: Si True, applique le seuil de confiance
 
         Returns:
             Dictionary containing all metrics
         """
         print(f"Starting evaluation on {len(test_loader.dataset)} samples...")
+        if use_confidence_threshold:
+            print(f"Confidence threshold: {self.confidence_threshold}")
 
         self.model.eval()
         self.all_predictions = []
         self.all_labels = []
         self.all_probabilities = []
+        self.all_confidences = []
+        self.uncertain_mask = []
 
         with torch.no_grad():
             for images, labels in tqdm(test_loader, desc='Testing'):
@@ -84,86 +94,132 @@ class Tester:
                 # Forward pass
                 outputs = self.model(images)
                 probabilities = torch.softmax(outputs, dim=1)
-                _, predicted = torch.max(outputs, 1)
+
+                # Récupérer la confiance maximale et la prédiction
+                max_probs, predicted = torch.max(probabilities, 1)
+
+                # Appliquer le seuil de confiance
+                if use_confidence_threshold:
+                    uncertain = max_probs < self.confidence_threshold
+                    self.uncertain_mask.extend(uncertain.cpu().numpy())
+                else:
+                    uncertain = torch.zeros_like(predicted, dtype=torch.bool)
+                    self.uncertain_mask.extend(uncertain.cpu().numpy())
 
                 # Store results
                 self.all_predictions.extend(predicted.cpu().numpy())
                 self.all_labels.extend(labels.cpu().numpy())
                 self.all_probabilities.extend(probabilities.cpu().numpy())
+                self.all_confidences.extend(max_probs.cpu().numpy())
 
         # Convert to numpy arrays
         self.all_predictions = np.array(self.all_predictions)
         self.all_labels = np.array(self.all_labels)
         self.all_probabilities = np.array(self.all_probabilities)
+        self.all_confidences = np.array(self.all_confidences)
+        self.uncertain_mask = np.array(self.uncertain_mask)
 
         # Get class names
         self.class_names = self.config.class_mapping.idx_to_name
 
         # Calculate all metrics
-        metrics = self._calculate_metrics()
+        metrics = self._calculate_metrics(use_confidence_threshold)
 
         if save_results:
-            self._save_results(metrics)
+            self._save_results(metrics, use_confidence_threshold)
 
         return metrics
 
-    def _calculate_metrics(self) -> Dict:
+    def _calculate_metrics(self, use_confidence_threshold: bool = True) -> Dict:
         """Calculate all evaluation metrics."""
         metrics = {}
 
-        # Overall accuracy
-        metrics['overall_accuracy'] = accuracy_score(
-            self.all_labels,
-            self.all_predictions
-        )
+        # Créer des versions filtrées des prédictions
+        if use_confidence_threshold:
+            # Masquer les prédictions incertaines
+            confident_mask = ~self.uncertain_mask
+            confident_predictions = self.all_predictions[confident_mask]
+            confident_labels = self.all_labels[confident_mask]
 
-        # Top-k accuracy
-        metrics['top_3_accuracy'] = top_k_accuracy_score(
-            self.all_labels,
-            self.all_probabilities,
-            k=3
-        )
-        metrics['top_5_accuracy'] = top_k_accuracy_score(
-            self.all_labels,
-            self.all_probabilities,
-            k=5
-        )
+            n_total = len(self.all_predictions)
+            n_uncertain = self.uncertain_mask.sum()
+            n_confident = confident_mask.sum()
 
-        # Per-class metrics
-        precision, recall, f1, support = precision_recall_fscore_support(
-            self.all_labels,
-            self.all_predictions,
-            average=None,
-            zero_division=0
-        )
-
-        metrics['per_class'] = {
-            self.class_names[i]: {
-                'precision': float(precision[i]),
-                'recall': float(recall[i]),
-                'f1_score': float(f1[i]),
-                'support': int(support[i])
+            metrics['confidence_stats'] = {
+                'total_samples': int(n_total),
+                'uncertain_samples': int(n_uncertain),
+                'confident_samples': int(n_confident),
+                'uncertain_ratio': float(n_uncertain / n_total),
+                'mean_confidence': float(self.all_confidences.mean()),
+                'median_confidence': float(np.median(self.all_confidences))
             }
-            for i in range(len(self.class_names))
-        }
 
-        # Macro and weighted averages
-        for avg_type in ['macro', 'weighted']:
-            p, r, f, _ = precision_recall_fscore_support(
-                self.all_labels,
-                self.all_predictions,
-                average=avg_type,
+            print(f"\n📊 Confidence Statistics:")
+            print(f"  Samples incertains ('not_sure'): {n_uncertain}/{n_total} ({100 * n_uncertain / n_total:.2f}%)")
+            print(f"  Confiance moyenne: {self.all_confidences.mean():.4f}")
+        else:
+            confident_predictions = self.all_predictions
+            confident_labels = self.all_labels
+            confident_mask = np.ones(len(self.all_predictions), dtype=bool)
+
+        # Calculate metrics only on confident predictions
+        if len(confident_predictions) > 0:
+            metrics['overall_accuracy'] = accuracy_score(
+                confident_labels,
+                confident_predictions
+            )
+
+            # Top-k accuracy (seulement sur prédictions confiantes)
+            if len(confident_predictions) > 0:
+                metrics['top_3_accuracy'] = top_k_accuracy_score(
+                    confident_labels,
+                    self.all_probabilities[confident_mask],
+                    k=min(3, len(self.class_names))
+                )
+                metrics['top_5_accuracy'] = top_k_accuracy_score(
+                    confident_labels,
+                    self.all_probabilities[confident_mask],
+                    k=min(5, len(self.class_names))
+                )
+
+            # Per-class metrics
+            precision, recall, f1, support = precision_recall_fscore_support(
+                confident_labels,
+                confident_predictions,
+                average=None,
                 zero_division=0
             )
-            metrics[f'{avg_type}_precision'] = float(p)
-            metrics[f'{avg_type}_recall'] = float(r)
-            metrics[f'{avg_type}_f1'] = float(f)
 
-        # Confusion matrix
-        metrics['confusion_matrix'] = confusion_matrix(
-            self.all_labels,
-            self.all_predictions
-        ).tolist()
+            metrics['per_class'] = {
+                self.class_names[i]: {
+                    'precision': float(precision[i]),
+                    'recall': float(recall[i]),
+                    'f1_score': float(f1[i]),
+                    'support': int(support[i])
+                }
+                for i in range(len(self.class_names))
+            }
+
+            # Macro and weighted averages
+            for avg_type in ['macro', 'weighted']:
+                p, r, f, _ = precision_recall_fscore_support(
+                    confident_labels,
+                    confident_predictions,
+                    average=avg_type,
+                    zero_division=0
+                )
+                metrics[f'{avg_type}_precision'] = float(p)
+                metrics[f'{avg_type}_recall'] = float(r)
+                metrics[f'{avg_type}_f1'] = float(f)
+
+            # Confusion matrix (seulement sur prédictions confiantes)
+            metrics['confusion_matrix'] = confusion_matrix(
+                confident_labels,
+                confident_predictions
+            ).tolist()
+        else:
+            print("⚠️ Aucune prédiction confiante!")
+            metrics['overall_accuracy'] = 0.0
 
         return metrics
 
@@ -377,7 +433,7 @@ class Tester:
         print(report)
         print(f"\nSaved: classification_report.txt")
 
-    def _save_results(self, metrics: Dict):
+    def _save_results(self, metrics: Dict, use_confidence_threshold: bool):
         """Save all results to disk."""
         # Save metrics as JSON
         with open(self.run_dir / 'metrics.json', 'w') as f:
@@ -386,8 +442,20 @@ class Tester:
         # Save predictions
         results_df = pd.DataFrame({
             'true_label': [self.class_names[i] for i in self.all_labels],
-            'predicted_label': [self.class_names[i] for i in self.all_predictions],
-            'correct': self.all_labels == self.all_predictions
+            'predicted_label': [
+                'not_sure' if uncertain else self.class_names[pred]
+                for pred, uncertain in zip(self.all_predictions, self.uncertain_mask)
+            ],
+            'confidence': self.all_confidences,
+            'is_uncertain': self.uncertain_mask,
+            'correct': [
+                False if uncertain else (label == pred)
+                for label, pred, uncertain in zip(
+                    self.all_labels,
+                    self.all_predictions,
+                    self.uncertain_mask
+                )
+            ]
         })
 
         # Add probability columns
