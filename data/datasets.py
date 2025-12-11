@@ -178,14 +178,14 @@ class HuggingFaceImageDataset(CustomDataset):
 
             image = item[self.image_column]
 
-            #
+            # Finally, saving to the lists
             for i in range(len(labels)):
                 # Image
                 cropped_image = self.pre_processor(image, bbox=bboxes[i])
                 self.images_tensor.append(cropped_image)
 
                 # Label
-                mapped_label = self.config.class_mapping[labels[i]]
+                mapped_label = self.config.class_mapping.set(labels[i])
                 self.label_list.append(mapped_label)
 
                 # BBox

@@ -41,6 +41,9 @@ class ClassMapping:
         else:
             return self._get_one_item(keys)
 
+    def set(self, key):
+        return self._get_one_item(key, True)
+
     def _get_one_item(self,
             key: str,
             _allow_new: bool = False
