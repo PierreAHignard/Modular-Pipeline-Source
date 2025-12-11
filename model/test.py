@@ -126,38 +126,31 @@ class Tester:
         return metrics
 
     def evaluate_threshold_range(
-        self,
-        test_loader: DataLoader,
-        thresholds: Optional[List[float]] = None,
-        save_results: bool = True
+            self,
+            test_loader: DataLoader,
+            thresholds: Optional[List[float]] = None,
+            save_results: bool = True
     ) -> pd.DataFrame:
         """
         Évalue le modèle sur une gamme de seuils de confiance.
-
-        Args:
-            test_loader: DataLoader for test data
-            thresholds: Liste des seuils à tester (si None, utilise np.arange(0.0, 1.01, 0.05))
-            save_results: Si True, sauvegarde les résultats
-
-        Returns:
-            DataFrame contenant les métriques pour chaque seuil
         """
         if thresholds is None:
             thresholds = np.arange(0.0, 1.01, 0.05)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"TESTING {len(thresholds)} CONFIDENCE THRESHOLDS")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
-        # D'abord, obtenir toutes les prédictions sans seuil
+        # First, get all predictions without threshold
         original_threshold = self.confidence_threshold
         self.confidence_threshold = 0.0
         _ = self.evaluate(test_loader, save_results=False, use_confidence_threshold=False)
 
+        n_classes = len(self.class_names)
         results = []
 
         for threshold in tqdm(thresholds, desc="Testing thresholds"):
-            # Appliquer le seuil sur les prédictions existantes
+            # Apply threshold on existing predictions
             uncertain_mask = self.all_confidences < threshold
             confident_mask = ~uncertain_mask
 
@@ -166,7 +159,7 @@ class Tester:
             n_confident = confident_mask.sum()
 
             if n_confident == 0:
-                # Tous les échantillons sont incertains
+                # All samples are uncertain
                 result = {
                     'threshold': threshold,
                     'accuracy': 0.0,
@@ -179,14 +172,17 @@ class Tester:
                     'mean_confidence': float(self.all_confidences.mean())
                 }
             else:
-                # Calculer les métriques sur les prédictions confiantes
+                # Calculate metrics on confident predictions
                 confident_predictions = self.all_predictions[confident_mask]
                 confident_labels = self.all_labels[confident_mask]
 
                 accuracy = accuracy_score(confident_labels, confident_predictions)
+
+                # Add labels parameter here too
                 precision, recall, f1, _ = precision_recall_fscore_support(
                     confident_labels,
                     confident_predictions,
+                    labels=list(range(n_classes)),
                     average='weighted',
                     zero_division=0
                 )
@@ -208,7 +204,7 @@ class Tester:
 
         results_df = pd.DataFrame(results)
 
-        # Restaurer le seuil original
+        # Restore original threshold
         self.confidence_threshold = original_threshold
 
         if save_results:
@@ -458,13 +454,17 @@ class Tester:
                 print(f"⚠️ Could not calculate top-5 accuracy: {e}")
                 metrics['top_5_accuracy'] = 0.0
 
-        # Per-class metrics
+        # Per-class metrics - IMPORTANT: specify labels to get all classes
         precision, recall, f1, support = precision_recall_fscore_support(
             confident_labels,
             confident_predictions,
+            labels=list(range(n_classes)),  # Force all classes to be included
             average=None,
             zero_division=0
         )
+
+        # Verify dimensions match
+        assert len(precision) == n_classes, f"Precision length {len(precision)} != n_classes {n_classes}"
 
         metrics['per_class'] = {
             self.class_names[i]: {
@@ -473,7 +473,7 @@ class Tester:
                 'f1_score': float(f1[i]),
                 'support': int(support[i])
             }
-            for i in range(len(self.class_names))
+            for i in range(n_classes)
         }
 
         # Macro and weighted averages
@@ -481,6 +481,7 @@ class Tester:
             p, r, f, _ = precision_recall_fscore_support(
                 confident_labels,
                 confident_predictions,
+                labels=list(range(n_classes)),  # Also add here
                 average=avg_type,
                 zero_division=0
             )
@@ -488,10 +489,11 @@ class Tester:
             metrics[f'{avg_type}_recall'] = float(r)
             metrics[f'{avg_type}_f1'] = float(f)
 
-        # Confusion matrix
+        # Confusion matrix - also specify labels
         metrics['confusion_matrix'] = confusion_matrix(
             confident_labels,
-            confident_predictions
+            confident_predictions,
+            labels=list(range(n_classes))  # And here
         ).tolist()
 
         return metrics
