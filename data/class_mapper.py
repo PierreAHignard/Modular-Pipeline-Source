@@ -101,7 +101,7 @@ class ClassMapping:
         data = {
             "mapping": self._mapping,
             "allow_new_class_outside_preload": self._allow_new_class_outside_preload,
-            "size": self._size
+            "size": len(self)
         }
 
         # Sauvegarder en JSON
@@ -146,7 +146,7 @@ class ClassMapping:
     def idx_to_name(self):
         temp = {value: key for key, value in self._mapping.items()}
 
-        return [temp[i] for i in range(self.size)]
+        return [temp[i] for i in range(len(self))]
 
     @property
     def labels(self):
