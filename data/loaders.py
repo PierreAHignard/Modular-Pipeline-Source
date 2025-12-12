@@ -145,16 +145,12 @@ class BaseImageDatasetLoader(ABC):
 
     @property
     def labels(self):
-        if self._labels is None:
-            self._labels = self.load_data().labels
 
-        return self._labels
+        return self.load_data().labels
 
     def get_label_distribution(self):
-        if self._labels is None:
-            self._labels = self.load_data().get_label_distribution()
 
-        return self._labels
+        return self.load_data().get_label_distribution()
 
 
 class LocalImageDatasetLoader(BaseImageDatasetLoader):

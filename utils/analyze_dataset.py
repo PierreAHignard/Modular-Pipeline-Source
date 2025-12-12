@@ -3,7 +3,7 @@ Module de test et analyse des datasets d'images.
 Fourni des métriques complètes pour déboguer les problèmes de données.
 """
 
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, Optional
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
