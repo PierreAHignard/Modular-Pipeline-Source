@@ -32,7 +32,9 @@ class BaseImageDatasetLoader(ABC):
         shuffle: bool = True,
         transforms: Optional[Callable] = None,
         split_ratios: Optional[Tuple[float, ...]] = None,
-        seed: int = 42
+        seed: int = 42,
+        discard_unmapped_classes: bool = False
+
     ):
         """
         Args:
@@ -54,6 +56,8 @@ class BaseImageDatasetLoader(ABC):
         self._labels = None
         self._dataset = None
         self.config = config
+        self.discard_unmapped_classes = discard_unmapped_classes
+
 
         if split_ratios is not None:
             if not (2 <= len(split_ratios) <= 3):
@@ -175,7 +179,8 @@ class LocalImageDatasetLoader(BaseImageDatasetLoader):
                 data_dir=self.data_dir,
                 config=self.config,
                 transforms=self.transforms,
-                extensions=self.extensions
+                extensions=self.extensions,
+                discard_unmapped_classes=self.discard_unmapped_classes
             )
         return self._dataset
 
@@ -222,6 +227,7 @@ class HuggingFaceImageDatasetLoader(BaseImageDatasetLoader):
                 transforms=self.transforms,
                 image_column=self.image_column,
                 label_column=self.label_column,
-                bbox_column=self.bbox_column
+                bbox_column=self.bbox_column,
+                discard_unmapped_classes=self.discard_unmapped_classes
             )
         return self._dataset

@@ -161,7 +161,6 @@ class HuggingFaceImageDataset(CustomDataset):
             bbox_column: str = 'boxes',
             multi_label: bool = False,
             bbox_padding: float = 0.1,
-            # NOUVEAU PARAMÈTRE
             discard_unmapped_classes: bool = False
     ):
         super().__init__()
